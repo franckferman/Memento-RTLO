@@ -1,0 +1,23 @@
+# Auto-detect text files and normalise line endings.
+* text=auto
+
+# PowerShell scripts: always CRLF on checkout (Windows convention).
+*.ps1 text eol=crlf
+
+# Shell scripts: always LF.
+*.sh text eol=lf
+
+# Documentation and config: auto.
+*.md text
+*.yml text
+*.yaml text
+*.json text
+*.html text
+
+# Binary assets: do not diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

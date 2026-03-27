@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memento-RTLO</title>
+<meta name="description" content="File extension spoofing via the Right-to-Left Override Unicode character (U+202E). MITRE ATT&CK T1036.002.">
+<style>
+  /* ── Reset ────────────────────────────────────────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ── Base ─────────────────────────────────────────────────────────── */
+  :root {
+    --bg:       #060606;
+    --fg:       #b0b0b0;
+    --accent:   #c0392b;
+    --dim:      #444;
+    --mono:     'Courier New', Courier, 'Liberation Mono', monospace;
+  }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--mono);
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── Scan-lines overlay ───────────────────────────────────────────── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.12) 2px,
+      rgba(0,0,0,.12) 4px
+    );
+  }
+
+  /* ── Layout ───────────────────────────────────────────────────────── */
+  .wrapper {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  section { margin-bottom: 3.5rem; }
+
+  /* ── Glitch title ─────────────────────────────────────────────────── */
+  .title-block { text-align: center; margin-bottom: 3rem; }
+
+  .glitch {
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    position: relative;
+    display: inline-block;
+    letter-spacing: .06em;
+  }
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+  }
+
+  .glitch::before {
+    animation: glitch-clip 3s infinite linear alternate-reverse;
+    clip-path: inset(20% 0 40% 0);
+    color: #e74c3c;
+    text-shadow: -2px 0 #00fff9;
+  }
+
+  .glitch::after {
+    animation: glitch-clip 2s infinite linear alternate;
+    clip-path: inset(60% 0 5% 0);
+    color: #e74c3c;
+    text-shadow: 2px 0 #ff00c8;
+  }
+
+  @keyframes glitch-clip {
+    0%   { clip-path: inset(15% 0 60% 0); }
+    10%  { clip-path: inset(80% 0 1% 0);  }
+    20%  { clip-path: inset(5% 0 75% 0);  }
+    30%  { clip-path: inset(45% 0 30% 0); }
+    40%  { clip-path: inset(70% 0 10% 0); }
+    50%  { clip-path: inset(10% 0 55% 0); }
+    60%  { clip-path: inset(90% 0 2% 0);  }
+    70%  { clip-path: inset(25% 0 50% 0); }
+    80%  { clip-path: inset(60% 0 15% 0); }
+    90%  { clip-path: inset(3% 0 80% 0);  }
+    100% { clip-path: inset(40% 0 35% 0); }
+  }
+
+  .subtitle {
+    display: block;
+    margin-top: .6rem;
+    color: var(--dim);
+    font-size: .85rem;
+    letter-spacing: .04em;
+  }
+
+  /* ── Headings ─────────────────────────────────────────────────────── */
+  h2 {
+    color: var(--accent);
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    border-bottom: 1px solid #1a1a1a;
+    padding-bottom: .4rem;
+    margin-bottom: 1.2rem;
+  }
+
+  h3 {
+    color: #888;
+    font-size: .95rem;
+    margin: 1.4rem 0 .6rem;
+  }
+
+  /* ── Paragraphs & lists ───────────────────────────────────────────── */
+  p { margin-bottom: 1rem; }
+
+  ul, ol {
+    margin: .6rem 0 1rem 1.4rem;
+    list-style-position: outside;
+  }
+  li { margin-bottom: .35rem; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  strong, b { color: #d0d0d0; }
+  code {
+    background: #111;
+    padding: .15em .4em;
+    border-radius: 3px;
+    font-size: .92em;
+    color: #c0c0c0;
+  }
+
+  /* ── Terminal demo block ──────────────────────────────────────────── */
+  .terminal {
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 1.2rem 0;
+  }
+
+  .terminal-bar {
+    background: #111;
+    padding: .35rem .75rem;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+  }
+
+  .terminal-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .terminal-dot.red   { background: #c0392b; }
+  .terminal-dot.amber { background: #e67e22; }
+  .terminal-dot.green { background: #27ae60; }
+
+  .terminal-body {
+    padding: 1rem 1.2rem;
+    font-size: .82rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #999;
+  }
+
+  .terminal-body .prompt { color: var(--accent); }
+  .terminal-body .cmd    { color: #ccc; }
+  .terminal-body .out    { color: #666; }
+  .terminal-body .hl     { color: #e74c3c; }
+
+  /* ── Table ────────────────────────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: .85rem;
+  }
+
+  th {
+    text-align: left;
+    color: var(--accent);
+    border-bottom: 1px solid #222;
+    padding: .5rem .6rem;
+  }
+
+  td {
+    padding: .45rem .6rem;
+    border-bottom: 1px solid #111;
+  }
+
+  /* ── Footer ───────────────────────────────────────────────────────── */
+  footer {
+    text-align: center;
+    color: var(--dim);
+    font-size: .75rem;
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #111;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .glitch { font-size: 1.8rem; }
+    .wrapper { padding: 2rem 1rem 3rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- ── Title ──────────────────────────────────────────────────────── -->
+  <div class="title-block">
+    <span class="glitch" data-text="Memento-RTLO">Memento-RTLO</span>
+    <span class="subtitle">File extension spoofing via U+202E // MITRE ATT&CK T1036.002</span>
+  </div>
+
+  <!-- ── About ──────────────────────────────────────────────────────── -->
+  <section>
+    <h2>About</h2>
+    <p>
+      <strong>Memento-RTLO</strong> is a PowerShell tool that demonstrates file extension spoofing
+      using the Right-to-Left Override Unicode control character (<code>U+202E</code>). It renames
+      or copies executable files so that their displayed extension appears benign while the
+      underlying filesystem entry and operating-system behavior remain unchanged.
+    </p>
+    <p>
+      The project targets red teamers building phishing payloads for authorized engagements,
+      security researchers analyzing bidirectional filename rendering, and blue teamers
+      demonstrating the attack to raise user awareness.
+    </p>
+  </section>
+
+  <!-- ── How RTLO Works ─────────────────────────────────────────────── -->
+  <section>
+    <h2>How the RTLO Attack Works</h2>
+    <p>
+      The Unicode Standard defines the <strong>Bidirectional Algorithm</strong> (UAX #9) to handle
+      mixed-direction text. Code point <code>U+202E RIGHT-TO-LEFT OVERRIDE</code> is a zero-width
+      format character that forces all subsequent characters to render right-to-left, regardless
+      of their intrinsic directionality.
+    </p>
+
+    <h3>Filename Construction</h3>
+    <p>
+      The attack builds a filename with the logical structure:<br>
+      <code>&lt;DisplayName&gt; + U+202E + reverse(&lt;SpoofExt&gt;) + &lt;RealExt&gt;</code>
+    </p>
+    <p>
+      Because the bidi algorithm reverses the visual order of everything after the override
+      character, the user sees the spoof extension while the operating system processes the
+      real one.
+    </p>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot amber"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="terminal-body"><span class="out">Logical bytes :</span>  <span class="cmd">A n n e x e</span> <span class="hl">[U+202E]</span> <span class="cmd">g e p j . e x e</span>
+<span class="out">Visual render :</span>  <span class="cmd">Annexe</span><span class="hl"> exe.jpeg</span>
+<span class="out">OS executes   :</span>  <span class="hl">.exe</span></div>
+    </div>
+
+    <h3>Code Point Anatomy</h3>
+    <table>
+      <tr><th>Property</th><th>Value</th></tr>
+      <tr><td>Code Point</td><td>U+202E</td></tr>
+      <tr><td>Block</td><td>General Punctuation (U+2000 - U+206F)</td></tr>
+      <tr><td>Category</td><td>Cf (Format character)</td></tr>
+      <tr><td>Bidi Class</td><td>RLO (Right-to-Left Override)</td></tr>
+      <tr><td>UTF-8</td><td><code>E2 80 AE</code> (3 bytes)</td></tr>
+      <tr><td>UTF-16LE</td><td><code>2E 20</code> (2 bytes, BMP)</td></tr>
+    </table>
+  </section>
+
+  <!-- ── Terminal Demo ──────────────────────────────────────────────── -->
+  <section>
+    <h2>Terminal Demo</h2>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot amber"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="terminal-body"><span class="prompt">PS C:\lab&gt;</span> <span class="cmd">Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process</span>
+
+<span class="prompt">PS C:\lab&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1</span>
+<span class="out">===============================================</span>
+<span class="out">    Memento - RTLO File Extension Spoofing Tool</span>
+<span class="out">===============================================</span>
+<span class="out">File copied as:</span> <span class="hl">Annexe&#x202E;gepj.exe</span>
+
+<span class="prompt">PS C:\lab&gt;</span> <span class="cmd">dir</span>
+<span class="out">Mode         LastWriteTime     Length Name</span>
+<span class="out">----         -------------     ------ ----</span>
+<span class="out">-a---  2026-03-27  10:00      73802  payload.exe</span>
+<span class="out">-a---  2026-03-27  10:00      73802</span>  <span class="hl">Annexe exe.jpeg</span>  <span class="out">&lt;-- visually spoofed</span>
+
+<span class="prompt">PS C:\lab&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --show-list</span>
+<span class="out">Available name/extension pairs by file type:</span>
+
+<span class="out">[.exe]</span>
+<span class="out">  [1] Annexe.jpeg</span>
+<span class="out">  [2] Document.pdf</span>
+<span class="out">[.hta]</span>
+<span class="out">  [3] Info.jpg</span>
+<span class="out">  [4] Fichier.txt</span>
+<span class="out">[.bat]</span>
+<span class="out">  [5] Note.txt</span>
+<span class="out">  [6] Liste.csv</span>
+<span class="out">[.vbs]</span>
+<span class="out">  [7] Script.txt</span>
+<span class="out">  [8] Email.eml</span></div>
+    </div>
+  </section>
+
+  <!-- ── MITRE ATT&CK ──────────────────────────────────────────────── -->
+  <section>
+    <h2>MITRE ATT&CK Mapping</h2>
+    <table>
+      <tr><th>Field</th><th>Value</th></tr>
+      <tr><td>Tactic</td><td>Defense Evasion</td></tr>
+      <tr><td>Technique</td><td>T1036 - Masquerading</td></tr>
+      <tr><td>Sub-technique</td><td>T1036.002 - Right-to-Left Override</td></tr>
+      <tr><td>Platforms</td><td>Windows, Linux, macOS</td></tr>
+      <tr><td>Data Sources</td><td>File Metadata, File Creation, Process Creation</td></tr>
+    </table>
+
+    <h3>Related Techniques</h3>
+    <table>
+      <tr><th>ID</th><th>Name</th><th>Relationship</th></tr>
+      <tr><td>T1566.001</td><td>Spearphishing Attachment</td><td>Common delivery mechanism</td></tr>
+      <tr><td>T1204.002</td><td>User Execution: Malicious File</td><td>Requires user click</td></tr>
+      <tr><td>T1027</td><td>Obfuscated Files or Information</td><td>Conceptual overlap</td></tr>
+    </table>
+  </section>
+
+  <!-- ── Detection ──────────────────────────────────────────────────── -->
+  <section>
+    <h2>Detection</h2>
+    <p>
+      Scan filenames for the presence of Unicode bidirectional override and embedding characters.
+      The key indicators are code points in the range <code>U+202A</code> - <code>U+202E</code>
+      and <code>U+2066</code> - <code>U+2069</code>.
+    </p>
+
+    <h3>PowerShell Scanner</h3>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot amber"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="terminal-body"><span class="prompt">PS&gt;</span> <span class="cmd">Get-ChildItem -Recurse | Where-Object { $_.Name -match [char]0x202E } | Select-Object FullName</span></div>
+    </div>
+
+    <h3>Python Scanner</h3>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot amber"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="terminal-body"><span class="cmd">import os</span>
+
+<span class="cmd">BIDI = {'\u202a','\u202b','\u202c','\u202d','\u202e','\u2066','\u2067','\u2068','\u2069'}</span>
+<span class="cmd">for root, dirs, files in os.walk('.'):</span>
+<span class="cmd">    for name in files:</span>
+<span class="cmd">        if any(c in name for c in BIDI):</span>
+<span class="cmd">            print(os.path.join(root, name))</span></div>
+    </div>
+
+    <h3>Sigma Rule (Concept)</h3>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot amber"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="terminal-body"><span class="cmd">title: RTLO Character in Filename</span>
+<span class="cmd">status: experimental</span>
+<span class="cmd">logsource:</span>
+<span class="cmd">  category: file_event</span>
+<span class="cmd">  product: windows</span>
+<span class="cmd">detection:</span>
+<span class="cmd">  selection:</span>
+<span class="cmd">    TargetFilename|contains: "\u202E"</span>
+<span class="cmd">  condition: selection</span>
+<span class="cmd">tags:</span>
+<span class="cmd">  - attack.defense_evasion</span>
+<span class="cmd">  - attack.t1036.002</span></div>
+    </div>
+  </section>
+
+  <!-- ── Installation ───────────────────────────────────────────────── -->
+  <section>
+    <h2>Installation</h2>
+    <p>
+      <strong>Prerequisites:</strong> Windows 10/11, PowerShell 5.1+. No external dependencies.
+    </p>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot amber"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="terminal-body"><span class="out"># One-liner download</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">Invoke-WebRequest https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/MementoRTLO.ps1 -OutFile MementoRTLO.ps1</span>
+
+<span class="out"># Or clone the repository</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">git clone https://github.com/franckferman/Memento-RTLO.git</span></div>
+    </div>
+  </section>
+
+  <!-- ── Usage ──────────────────────────────────────────────────────── -->
+  <section>
+    <h2>Usage</h2>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot amber"></span>
+        <span class="terminal-dot green"></span>
+      </div>
+      <div class="terminal-body"><span class="out"># Allow script execution for the current process</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process</span>
+
+<span class="out"># Spoof payload.exe as a JPEG (non-destructive copy)</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1</span>
+
+<span class="out"># Spoof payload.exe as a PDF and replace the original</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 2 --replace</span>
+
+<span class="out"># List all spoof patterns</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --show-list</span>
+
+<span class="out"># Display help</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --help</span></div>
+    </div>
+
+    <h3>Command-Line Reference</h3>
+    <table>
+      <tr><th>Option</th><th>Required</th><th>Description</th></tr>
+      <tr><td><code>--file &lt;path&gt;</code></td><td>Yes</td><td>Path to the source file to spoof</td></tr>
+      <tr><td><code>--choice &lt;n&gt;</code></td><td>No</td><td>Select spoof pattern by index</td></tr>
+      <tr><td><code>--replace</code></td><td>No</td><td>Rename original in-place (default: copy)</td></tr>
+      <tr><td><code>--show-list</code></td><td>No</td><td>Print available patterns and exit</td></tr>
+      <tr><td><code>--help</code></td><td>No</td><td>Print usage and exit</td></tr>
+    </table>
+  </section>
+
+  <!-- ── License ────────────────────────────────────────────────────── -->
+  <section>
+    <h2>License</h2>
+    <p>
+      This project is licensed under the
+      <a href="https://github.com/franckferman/Memento-RTLO/blob/stable/LICENSE">GNU Affero General Public License v3.0</a>.
+    </p>
+  </section>
+
+  <footer>
+    Memento-RTLO // Franck FERMAN //
+    <a href="https://github.com/franckferman/Memento-RTLO">GitHub</a>
+  </footer>
+
+</div>
+</body>
+</html>
