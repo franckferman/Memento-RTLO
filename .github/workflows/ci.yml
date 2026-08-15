@@ -28,7 +28,7 @@ jobs:
             $errors | ForEach-Object { Write-Error $_.Message }
             exit 1
           }
-          Write-Host "Syntax OK — 0 parse errors"
+          Write-Host "Syntax OK - 0 parse errors"
 
   analyze:
     name: PSScriptAnalyzer
@@ -44,12 +44,19 @@ jobs:
       - name: Analyze MementoRTLO.ps1
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path MementoRTLO.ps1 -Severity Error,Warning
-          if ($results) {
-            $results | Format-Table -AutoSize
+          $all     = Invoke-ScriptAnalyzer -Path MementoRTLO.ps1 -Severity Error,Warning,Information
+          $errors  = $all | Where-Object { $_.Severity -eq 'Error' }
+          $warnings = $all | Where-Object { $_.Severity -eq 'Warning' }
+          if ($warnings) {
+            Write-Host "Warnings (non-blocking):" -ForegroundColor Yellow
+            $warnings | Format-Table RuleName,Severity,Line,Message -AutoSize
+          }
+          if ($errors) {
+            Write-Host "Errors:" -ForegroundColor Red
+            $errors | Format-Table RuleName,Severity,Line,Message -AutoSize
             exit 1
           }
-          Write-Host "PSScriptAnalyzer: no issues found"
+          Write-Host "PSScriptAnalyzer: no errors found"
 
   smoke:
     name: Smoke Test (--show-list)

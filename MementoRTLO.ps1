@@ -73,16 +73,16 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # ---------------------------------------------------------------------------
-# Bidirectional character map — resolved after arg parsing via --bidi-char.
+# Bidirectional character map - resolved after arg parsing via --bidi-char.
 # Default: U+202E (RLO). Alternatives provide different byte signatures to
 # evade AV signatures that target the U+202E byte sequence (e.g. Artoelo.B).
 # ---------------------------------------------------------------------------
 $BidiCharMap = @{
-    'rlo' = [char]0x202E   # RIGHT-TO-LEFT OVERRIDE   — UTF-16LE: 2E 20
-    'rli' = [char]0x2067   # RIGHT-TO-LEFT ISOLATE    — UTF-16LE: 67 20 (Unicode 6.3)
-    'rle' = [char]0x202B   # RIGHT-TO-LEFT EMBEDDING  — UTF-16LE: 2B 20
+    'rlo' = [char]0x202E   # RIGHT-TO-LEFT OVERRIDE   - UTF-16LE: 2E 20
+    'rli' = [char]0x2067   # RIGHT-TO-LEFT ISOLATE    - UTF-16LE: 67 20 (Unicode 6.3)
+    'rle' = [char]0x202B   # RIGHT-TO-LEFT EMBEDDING  - UTF-16LE: 2B 20
 }
-$RTLO = $BidiCharMap['rlo']  # placeholder — overwritten after arg parsing
+$RTLO = $BidiCharMap['rlo']  # placeholder - overwritten after arg parsing
 
 # ---------------------------------------------------------------------------
 # Association table.
@@ -195,9 +195,9 @@ function Show-Help {
     Write-Host "  --dry-run              Preview output filename, no file written"
     Write-Host "  --show-list            List all available patterns with global indices"
     Write-Host "  --bidi-char <mode>     Bidi override character: rlo (default) | rli | rle"
-    Write-Host "                           rlo = U+202E RLO — visual spoof works in Explorer (Artoelo.B)"
-    Write-Host "                           rli = U+2067 RLI — different byte signature; no visual spoof"
-    Write-Host "                           rle = U+202B RLE — different byte signature; no visual spoof"
+    Write-Host "                           rlo = U+202E RLO - visual spoof works in Explorer (Artoelo.B)"
+    Write-Host "                           rli = U+2067 RLI - different byte signature; no visual spoof"
+    Write-Host "                           rle = U+202B RLE - different byte signature; no visual spoof"
     Write-Host "  --help / /help         Show this help"
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Yellow
@@ -309,8 +309,8 @@ if ($Associations.Keys -notcontains $FileExt) {
 
 # ---------------------------------------------------------------------------
 # Pattern selection
-# --choice N  → look up in the GLOBAL list; validate it matches $FileExt
-# (no --choice) → interactive menu limited to the current extension's pairs
+# --choice N  -> look up in the GLOBAL list; validate it matches $FileExt
+# (no --choice) -> interactive menu limited to the current extension's pairs
 # ---------------------------------------------------------------------------
 $GlobalList = Get-GlobalList
 $Selected   = $null
