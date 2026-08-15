@@ -32,7 +32,9 @@ It renames or copies executable files (`.exe`, `.hta`, `.bat`, `.vbs`, `.ps1`) s
 ## Usage
 
 ```powershell
+# Download
 Invoke-WebRequest https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/MementoRTLO.ps1 -OutFile MementoRTLO.ps1
+# Allow execution
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 ```
 
