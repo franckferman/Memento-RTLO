@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://github.com/franckferman/Memento-RTLO">
-  <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/refs/heads/stable/docs/github/graphical_resources/Logo-without_background-Memento.png" alt="Memento-RTLO" width="180">
+  <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/refs/heads/stable/docs/github/graphical_resources/Logo-without_background-Memento.png" alt="Memento-RTLO" width="300">
 </a>
 
 <h3>Memento-RTLO</h3>
