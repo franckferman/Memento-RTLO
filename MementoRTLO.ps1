@@ -10,257 +10,338 @@ operating-system behavior remain unchanged.
 The tool inserts the Unicode Right-to-Left Override control character
 (U+202E) into the filename at a calculated position. The Unicode
 Bidirectional Algorithm (UAX #9) then causes every subsequent character
-to be rendered in reverse visual order. The result is that a file whose
-real extension is, for example, .exe appears on screen as .jpeg or .pdf.
+to be rendered in reverse visual order.
 
-Supported real extensions: .exe, .hta, .bat, .vbs.
-Supported spoof extensions: jpeg, pdf, jpg, txt, csv, eml.
-
-The technique corresponds to MITRE ATT&CK sub-technique T1036.002
-(Masquerading: Right-to-Left Override).
+Supported real extensions : .exe  .hta  .bat  .vbs  .ps1
+Supported spoof extensions : pdf  jpeg  jpg  png  txt  csv  eml  docx
 
 .PARAMETER --file
-Path to the executable file to spoof. Required.
+Path to the executable file to spoof. Required for renaming operations.
 
 .PARAMETER --choice
-Index of the spoof pattern to apply (see --show-list). If omitted, an
-interactive menu is displayed.
+Global index of the spoof pattern to apply (see --show-list).
+If omitted, an interactive menu is displayed for the file's extension.
 
 .PARAMETER --replace
-When specified, the original file is renamed in-place. By default, a
-copy is created alongside the original.
+When specified, the original file is renamed in-place.
+Default: a copy is created alongside the original.
+
+.PARAMETER --dry-run
+Preview the output filename without creating any file.
 
 .PARAMETER --show-list
-Prints every available name/extension pair grouped by real extension
-and exits.
+Print every available pattern with its global index, then exit.
+When combined with --file, only patterns for that extension are shown.
 
-.PARAMETER --help
-Displays usage information and exits. Also accepts /help and -help.
-
-.EXAMPLE
-PS C:\> Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
-PS C:\> .\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 2
-
-Creates a copy of payload.exe whose displayed filename appears to end
-with .pdf thanks to the RTLO character injection.
-
-.EXAMPLE
-PS C:\> .\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1 --replace
-
-Renames payload.exe in-place so its displayed filename shows .jpeg.
+.PARAMETER --help / /help / -help
+Display usage information and exit.
 
 .EXAMPLE
 PS C:\> .\MementoRTLO.ps1 --show-list
+Lists all patterns with their global index.
 
-Lists all available spoof patterns (name + fake extension) for every
-supported real extension.
+.EXAMPLE
+PS C:\> .\MementoRTLO.ps1 --file payload.exe --choice 3
+Copies payload.exe with the 3rd pattern matching .exe.
+
+.EXAMPLE
+PS C:\> .\MementoRTLO.ps1 --file payload.exe --choice 3 --dry-run
+Previews the filename without writing anything.
+
+.EXAMPLE
+PS C:\> .\MementoRTLO.ps1 --file payload.bat --replace
+Interactive selection, renames in place.
 
 .NOTES
-Author   : Franck FERMAN
-Version  : 2.0.0
-License  : GNU AGPLv3
-GitHub   : https://github.com/franckferman/Memento-RTLO
+Author  : Franck FERMAN
+Version : 2.1.0
+License : GNU AGPLv3
+GitHub  : https://github.com/franckferman/Memento-RTLO
 
-.LINK
-https://github.com/franckferman/Memento-RTLO
+MITRE ATT&CK : T1036.002 (Masquerading: Right-to-Left Override)
 #>
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
 # ---------------------------------------------------------------------------
-# RTLO Unicode control character (U+202E, UTF-8: E2 80 AE).
-# Inserting this character into a filename causes the bidi rendering engine
-# to display all subsequent characters in reverse visual order.
+# U+202E — Right-to-Left Override
 # ---------------------------------------------------------------------------
 $RTLO = [char]0x202E
 
-
 # ---------------------------------------------------------------------------
-# Spoof association table.
-# Each real extension maps to an array of hashtables containing a display
-# name and a fake extension. When applied, the fake extension is reversed
-# and appended after the RTLO character so that the bidi algorithm renders
-# it in the expected (unreversed) reading order.
+# Association table.
+# Ordered to guarantee stable display and consistent --choice indices.
+# Each extension maps to an array of hashtables {Name, Extension}.
 # ---------------------------------------------------------------------------
-$Associations = @{
+$Associations = [ordered]@{
     '.exe' = @(
-        @{ Name = 'Annexe'; Extension = 'jpeg' },
-        @{ Name = 'Document'; Extension = 'pdf' }
+        [ordered]@{ Name = 'Rapport_Q4_2024';    Extension = 'pdf'  }
+        [ordered]@{ Name = 'Annexe_contrat';      Extension = 'pdf'  }
+        [ordered]@{ Name = 'Devis_client';        Extension = 'pdf'  }
+        [ordered]@{ Name = 'Photo_reunion';       Extension = 'jpeg' }
+        [ordered]@{ Name = 'Scan_document';       Extension = 'jpg'  }
+        [ordered]@{ Name = 'Logo_societe';        Extension = 'png'  }
+        [ordered]@{ Name = 'Note_interne';        Extension = 'txt'  }
     )
     '.hta' = @(
-        @{ Name = 'Info'; Extension = 'jpg' },
-        @{ Name = 'Fichier'; Extension = 'txt' }
+        [ordered]@{ Name = 'Info_reunion';        Extension = 'jpg'  }
+        [ordered]@{ Name = 'Bilan_annuel';        Extension = 'pdf'  }
+        [ordered]@{ Name = 'Fichier_partage';     Extension = 'txt'  }
+        [ordered]@{ Name = 'Capture_ecran';       Extension = 'png'  }
     )
     '.bat' = @(
-        @{ Name = 'Note'; Extension = 'txt' },
-        @{ Name = 'Liste'; Extension = 'csv' }
+        [ordered]@{ Name = 'Liste_contacts';      Extension = 'csv'  }
+        [ordered]@{ Name = 'Note_reunion';        Extension = 'txt'  }
+        [ordered]@{ Name = 'Instructions_setup';  Extension = 'txt'  }
+        [ordered]@{ Name = 'Export_donnees';      Extension = 'csv'  }
     )
     '.vbs' = @(
-        @{ Name = 'Script'; Extension = 'txt' },
-        @{ Name = 'Email'; Extension = 'eml' }
+        [ordered]@{ Name = 'Script_backup';       Extension = 'txt'  }
+        [ordered]@{ Name = 'Email_client';        Extension = 'eml'  }
+        [ordered]@{ Name = 'Rapport_audit';       Extension = 'pdf'  }
+    )
+    '.ps1' = @(
+        [ordered]@{ Name = 'Config_systeme';      Extension = 'txt'  }
+        [ordered]@{ Name = 'Rapport_securite';    Extension = 'pdf'  }
+        [ordered]@{ Name = 'Donnees_export';      Extension = 'csv'  }
+        [ordered]@{ Name = 'Document_interne';    Extension = 'docx' }
     )
 }
 
+# ---------------------------------------------------------------------------
+# Build the flat global list used for --show-list and --choice resolution.
+# Returns array of [pscustomobject] with: GlobalIndex, RealExt, Name, FakeExt
+# ---------------------------------------------------------------------------
+function Get-GlobalList {
+    $list = [System.Collections.Generic.List[pscustomobject]]::new()
+    $idx = 1
+    foreach ($ext in $Associations.Keys) {
+        foreach ($item in $Associations[$ext]) {
+            $list.Add([pscustomobject]@{
+                GlobalIndex = $idx
+                RealExt     = $ext
+                Name        = $item.Name
+                FakeExt     = $item.Extension
+            })
+            $idx++
+        }
+    }
+    return $list
+}
+
+# ---------------------------------------------------------------------------
+# Reverse a string using character array slice.
+# ---------------------------------------------------------------------------
+function Reverse-String([string]$s) {
+    if ($s.Length -le 1) { return $s }
+    return -join $s.ToCharArray()[-1..-($s.Length)]
+}
+
+# ---------------------------------------------------------------------------
+# Build the RTLO filename from a pattern entry and the real extension.
+#
+# Logical layout:  <Name> + U+202E + reverse(<FakeExt>) + <RealExt>
+#
+# Example: Name="Annexe", FakeExt="jpeg", RealExt=".exe"
+#   Logical bytes:  A n n e x e [U+202E] g e p j . e x e
+#   Bidi rendering: Annexe exe.jpeg
+#   Explorer shows extension column: jpeg
+# ---------------------------------------------------------------------------
+function Build-Filename([pscustomobject]$entry, [string]$realExt) {
+    $revFake = Reverse-String $entry.FakeExt
+    return "$($entry.Name)$RTLO$revFake$realExt"
+}
 
 # ---------------------------------------------------------------------------
 # Show-Banner
-# Prints the tool banner to the console.
 # ---------------------------------------------------------------------------
 function Show-Banner {
-    Write-Host "==============================================="
-    Write-Host "    Memento - RTLO File Extension Spoofing Tool"
-    Write-Host "==============================================="
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "  Memento-RTLO  -  File Extension Spoofing Tool" -ForegroundColor Cyan
+    Write-Host "  MITRE ATT&CK T1036.002  |  Author: Franck FERMAN" -ForegroundColor Cyan
+    Write-Host "====================================================" -ForegroundColor Cyan
 }
-
 
 # ---------------------------------------------------------------------------
 # Show-Help
-# Prints a usage summary including all available command-line options,
-# then terminates the script.
 # ---------------------------------------------------------------------------
 function Show-Help {
     Show-Banner
     Write-Host ""
-    Write-Host "Usage:"
-    Write-Host "  .\MementoRTLO.ps1 --file <path> [--choice <number>] [--replace]"
+    Write-Host "Usage:" -ForegroundColor Yellow
+    Write-Host "  .\MementoRTLO.ps1 --file <path> [--choice <N>] [--replace] [--dry-run]"
+    Write-Host "  .\MementoRTLO.ps1 --show-list [--file <path>]"
     Write-Host ""
-    Write-Host "Options:"
-    Write-Host "  --file <path>          Path to file to spoof."
-    Write-Host "  --choice <number>      Pick spoof pattern (index from --show-list)."
-    Write-Host "  --replace              Replace the file (default is to copy)."
-    Write-Host "  --show-list            List available spoof patterns."
-    Write-Host "  /help, --help, -help   Show help."
+    Write-Host "Options:" -ForegroundColor Yellow
+    Write-Host "  --file <path>          Source file to spoof (.exe/.hta/.bat/.vbs/.ps1)"
+    Write-Host "  --choice <N>           Global pattern index from --show-list"
+    Write-Host "  --replace              Rename in-place (default: create a copy)"
+    Write-Host "  --dry-run              Preview output filename, no file written"
+    Write-Host "  --show-list            List all available patterns with global indices"
+    Write-Host "  --help / /help         Show this help"
     Write-Host ""
-    exit
+    Write-Host "Examples:" -ForegroundColor Yellow
+    Write-Host "  .\MementoRTLO.ps1 --show-list"
+    Write-Host "  .\MementoRTLO.ps1 --file payload.exe --choice 3"
+    Write-Host "  .\MementoRTLO.ps1 --file payload.exe --choice 3 --dry-run"
+    Write-Host "  .\MementoRTLO.ps1 --file payload.bat --replace"
+    Write-Host ""
+    exit 0
 }
 
-
 # ---------------------------------------------------------------------------
-# Show-List
-# Enumerates all spoof patterns from the association table, grouped by
-# real extension, with a sequential index for use with --choice.
+# Show-List  [optional: filter by extension]
 # ---------------------------------------------------------------------------
-function Show-List {
-    Write-Host "Available name/extension pairs by file type:"
-    $i = 1
-    foreach ($ext in $Associations.Keys) {
-        Write-Host "`n[$ext]"
-        foreach ($item in $Associations[$ext]) {
-            Write-Host "  [$i] $($item.Name).$($item.Extension)"
-            $i++
+function Show-List([string]$filterExt = '') {
+    $list = Get-GlobalList
+    $prevExt = ''
+    foreach ($entry in $list) {
+        if ($filterExt -and $entry.RealExt -ne $filterExt) { continue }
+        if ($entry.RealExt -ne $prevExt) {
+            Write-Host ""
+            Write-Host "  [$($entry.RealExt)]" -ForegroundColor Yellow
+            $prevExt = $entry.RealExt
         }
+        Write-Host ("  [{0,2}]  {1}.{2}" -f $entry.GlobalIndex, $entry.Name, $entry.FakeExt)
     }
-    exit
+    Write-Host ""
+    exit 0
 }
 
-
 # ---------------------------------------------------------------------------
-# Argument parsing.
-# Supports --file, --choice, --replace, --show-list, and help flags.
-# Unknown arguments are reported with a warning.
+# Argument parsing
 # ---------------------------------------------------------------------------
-$Params = @{
-    File = $null
-    Choice = $null
+$Params = [ordered]@{
+    File    = $null
+    Choice  = $null      # $null = not provided; 0 is invalid, caught later
     Replace = $false
+    DryRun  = $false
     ShowList = $false
 }
 
-
-for ($i = 0; $i -lt $args.Count; $i++) {
+$i = 0
+while ($i -lt $args.Count) {
     switch -regex ($args[$i]) {
         '^(/help|--help|-help)$' { Show-Help }
-        '^--file$' { $Params.File = $args[++$i] }
-        '^--choice$' { $Params.Choice = [int]$args[++$i] }
-        '^--replace$' { $Params.Replace = $true }
+        '^--file$'      { $i++; $Params.File = $args[$i] }
+        '^--choice$'    { $i++; $Params.Choice = [int]$args[$i] }
+        '^--replace$'   { $Params.Replace = $true }
+        '^--dry-run$'   { $Params.DryRun = $true }
         '^--show-list$' { $Params.ShowList = $true }
-        default { Write-Host "Unknown argument: $($args[$i])" -ForegroundColor Yellow }
+        default {
+            Write-Host "Unknown argument: $($args[$i])" -ForegroundColor Yellow
+        }
     }
+    $i++
 }
 
-
-if ($Params.ShowList) { Show-List }
-
+# ---------------------------------------------------------------------------
+# Handle --show-list (with optional --file filter)
+# ---------------------------------------------------------------------------
+if ($Params.ShowList) {
+    Show-Banner
+    $filterExt = ''
+    if ($Params.File) {
+        $filterExt = [System.IO.Path]::GetExtension($Params.File).ToLower()
+    }
+    Write-Host ""
+    Write-Host "Available patterns (use global index with --choice):" -ForegroundColor White
+    Show-List $filterExt
+}
 
 # ---------------------------------------------------------------------------
-# Input validation.
+# Input validation
 # ---------------------------------------------------------------------------
 if (-not $Params.File) {
-    Write-Host "Error: Please specify a file path using --file." -ForegroundColor Red
+    Write-Host "Error: --file is required." -ForegroundColor Red
+    Write-Host "Run with --help for usage." -ForegroundColor Gray
     exit 1
 }
-
 
 if (-not (Test-Path $Params.File)) {
     Write-Host "Error: File not found: $($Params.File)" -ForegroundColor Red
     exit 1
 }
 
-
 $FileExt = [System.IO.Path]::GetExtension($Params.File).ToLower()
-if (-not $Associations.ContainsKey($FileExt)) {
-    Write-Host "Error: Unsupported extension '$FileExt'. Supported: .exe, .hta, .bat, .vbs." -ForegroundColor Red
+if ($Associations.Keys -notcontains $FileExt) {
+    $supported = ($Associations.Keys) -join ', '
+    Write-Host "Error: Unsupported extension '$FileExt'." -ForegroundColor Red
+    Write-Host "Supported: $supported" -ForegroundColor Gray
     exit 1
 }
 
-
 # ---------------------------------------------------------------------------
-# Pattern selection.
-# If --choice was provided, validate and use it directly. Otherwise,
-# present an interactive menu and wait for user input.
+# Pattern selection
+# --choice N  → look up in the GLOBAL list; validate it matches $FileExt
+# (no --choice) → interactive menu limited to the current extension's pairs
 # ---------------------------------------------------------------------------
-$Pairs = $Associations[$FileExt]
+$GlobalList = Get-GlobalList
+$Selected   = $null
 
-
-if ($Params.Choice) {
-    if ($Params.Choice -le 0 -or $Params.Choice -gt $Pairs.Count) {
-        Write-Host "Invalid choice. Use --show-list to see options." -ForegroundColor Red
+if ($null -ne $Params.Choice) {
+    # Resolve from global list
+    $match = $GlobalList | Where-Object { $_.GlobalIndex -eq $Params.Choice }
+    if (-not $match) {
+        $max = ($GlobalList | Measure-Object -Property GlobalIndex -Maximum).Maximum
+        Write-Host "Error: --choice $($Params.Choice) is out of range (1-$max)." -ForegroundColor Red
+        Write-Host "Run --show-list to see available patterns." -ForegroundColor Gray
         exit 1
     }
-    $Selected = $Pairs[$Params.Choice - 1]
+    if ($match.RealExt -ne $FileExt) {
+        Write-Host "Error: Pattern $($Params.Choice) is for '$($match.RealExt)' files, but '$($Params.File)' is '$FileExt'." -ForegroundColor Red
+        Write-Host "Run --show-list --file '$($Params.File)' to see compatible patterns." -ForegroundColor Gray
+        exit 1
+    }
+    $Selected = $match
 } else {
-    Write-Host "`nSelect name/extension pair:"
-    for ($i = 0; $i -lt $Pairs.Count; $i++) {
-        Write-Host "[$($i + 1)] $($Pairs[$i].Name).$($Pairs[$i].Extension)"
+    # Interactive: show only patterns for this extension
+    $extPatterns = $GlobalList | Where-Object { $_.RealExt -eq $FileExt }
+    Write-Host ""
+    Write-Host "Select spoof pattern for $FileExt files:" -ForegroundColor Yellow
+    foreach ($entry in $extPatterns) {
+        Write-Host ("  [{0,2}]  {1}.{2}" -f $entry.GlobalIndex, $entry.Name, $entry.FakeExt)
     }
-    $sel = Read-Host "Enter choice"
-    if (-not ($sel -as [int]) -or $sel -lt 1 -or $sel -gt $Pairs.Count) {
-        Write-Host "Invalid input." -ForegroundColor Red
+    Write-Host ""
+    $input = Read-Host "Enter global index"
+    $chosen = $null
+    if (-not [int]::TryParse($input, [ref]$chosen)) {
+        Write-Host "Error: Not a valid number." -ForegroundColor Red
         exit 1
     }
-    $Selected = $Pairs[$sel - 1]
+    $match = $extPatterns | Where-Object { $_.GlobalIndex -eq $chosen }
+    if (-not $match) {
+        Write-Host "Error: Index $chosen is not valid for $FileExt. Use one of the listed numbers." -ForegroundColor Red
+        exit 1
+    }
+    $Selected = $match
 }
 
+# ---------------------------------------------------------------------------
+# Build the spoofed filename
+# ---------------------------------------------------------------------------
+$NewFileName = Build-Filename $Selected $FileExt
+$SourceDir   = (Get-Item $Params.File).DirectoryName
+$NewPath     = [System.IO.Path]::Combine($SourceDir, $NewFileName)
 
-# ---------------------------------------------------------------------------
-# Filename construction.
-#
-# Logical structure:
-#   <DisplayName> + U+202E + reverse(<SpoofExtension>) + <RealExtension>
-#
-# The bidi algorithm renders reverse(<SpoofExtension>) + <RealExtension>
-# right-to-left, so the user sees:
-#   <DisplayName> <RealExtWithoutDot>.<SpoofExtension>
-#
-# Example for payload.exe spoofed as Annexe.jpeg:
-#   Logical bytes:  A n n e x e [U+202E] g e p j . e x e
-#   Visual render:  Annexe exe.jpeg
-# ---------------------------------------------------------------------------
-$BaseName = $Selected.Name
-$SpoofExt = $Selected.Extension
-$ReversedExt = -join ($SpoofExt.ToCharArray())[-1..-($SpoofExt.Length)]
-$NewFileName = "$BaseName$RTLO$ReversedExt$FileExt"
-
-
-# ---------------------------------------------------------------------------
-# File operation: copy (default) or rename (--replace).
-# ---------------------------------------------------------------------------
-$NewPath = [System.IO.Path]::Combine((Get-Item $Params.File).DirectoryName, $NewFileName)
 Show-Banner
-if ($Params.Replace) {
+Write-Host ""
+Write-Host "  Source  : $($Params.File)" -ForegroundColor White
+Write-Host "  Pattern : [$($Selected.GlobalIndex)] $($Selected.Name).$($Selected.FakeExt)  (for $FileExt)" -ForegroundColor White
+Write-Host "  Output  : $NewFileName" -ForegroundColor Green
+Write-Host ""
+
+# ---------------------------------------------------------------------------
+# File operation (skip if --dry-run)
+# ---------------------------------------------------------------------------
+if ($Params.DryRun) {
+    Write-Host "[DRY RUN] No file written." -ForegroundColor Yellow
+} elseif ($Params.Replace) {
     Rename-Item -Path $Params.File -NewName $NewFileName
-    Write-Host "File renamed as: $NewFileName"
+    Write-Host "[OK] File renamed in-place." -ForegroundColor Green
 } else {
     Copy-Item -Path $Params.File -Destination $NewPath
-    Write-Host "File copied as: $NewFileName"
+    Write-Host "[OK] Spoofed copy created." -ForegroundColor Green
 }
 Write-Host ""
