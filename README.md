@@ -24,7 +24,7 @@ It renames or copies executable files (`.exe`, `.hta`, `.bat`, `.vbs`, `.ps1`) s
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/docs/github/screenshots/explorer_spoofed.png" alt="RTLO spoofed files in Windows Explorer" width="700">
-  <br><em>Windows Explorer — .exe / .hta / .bat / .vbs / .ps1 files spoofed as .pdf, .csv, .jpeg, .txt, .png (extensions hidden, default Windows setting)</em>
+  <br><em>.exe / .hta / .bat / .vbs / .ps1 files spoofed as .pdf, .csv, .jpeg, .txt, .png in Windows Explorer (extensions hidden, default Windows setting)</em>
 </div>
 
 ---
