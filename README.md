@@ -29,23 +29,10 @@ It renames or copies executable files (`.exe`, `.hta`, `.bat`, `.vbs`, `.ps1`) s
 
 ---
 
-## Installation
-
-```powershell
-# One-liner
-Invoke-WebRequest https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/MementoRTLO.ps1 -OutFile MementoRTLO.ps1
-
-# Or clone
-git clone https://github.com/franckferman/Memento-RTLO.git
-```
-
----
-
 ## Usage
 
-Allow script execution for the current process:
-
 ```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/MementoRTLO.ps1 -OutFile MementoRTLO.ps1
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 ```
 
