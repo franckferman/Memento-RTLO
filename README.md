@@ -110,7 +110,7 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 
 ---
 
-## Unicode Bidi Deep Dive
+## Unicode Bidirectional Deep Dive
 
 The Unicode Standard defines the **Bidirectional Algorithm** (UAX #9) to handle mixed-direction text. Documents combining left-to-right (LTR) scripts such as Latin with right-to-left (RTL) scripts such as Arabic or Hebrew require the algorithm to assign a bidi category to every code point and determine the visual rendering order.
 
