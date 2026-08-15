@@ -164,7 +164,9 @@ function Reverse-String([string]$s) {
 #   Explorer shows extension column: jpeg
 # ---------------------------------------------------------------------------
 function Build-Filename([pscustomobject]$entry, [string]$realExt) {
-    $revFake = Reverse-String $entry.FakeExt
+    # Reverse ".<fakeExt>" so the dot appears on the correct side after RTLO rendering.
+    # e.g. ".pdf" reversed = "fdp." -> RTLO shows ".pdf" visually in Explorer.
+    $revFake = Reverse-String ".$($entry.FakeExt)"
     return "$($entry.Name)$RTLO$revFake$realExt"
 }
 
