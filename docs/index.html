@@ -270,19 +270,11 @@
       With it: <code>reverse('.jpeg')</code> = <code>gepj.</code> — the dot lands at position 0 after RTLO, producing <code>Annexe.jpeg</code>.
     </p>
 
-    <div class="terminal">
-      <div class="terminal-bar">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot amber"></span>
-        <span class="terminal-dot green"></span>
-        <span style="margin-left:.5rem;font-size:.75rem;color:#444">bidi rendering</span>
-      </div>
-      <div class="terminal-body"><span class="out">Logical:  </span><span class="cmd">A n n e x e </span><span class="hl">[U+202E]</span><span class="cmd"> . g e p j . . e x e</span>
-<span class="out">                               ^-- RTL rendering starts here</span>
+    <pre style="background:#0d0d0d;border-left:2px solid #c0392b;padding:1rem 1.2rem;font-size:.82rem;line-height:1.65;color:#666;overflow-x:auto;margin:1.2rem 0">Logical:  <span style="color:#ccc">A n n e x e </span><span style="color:#c0392b">[U+202E]</span><span style="color:#ccc"> . g e p j . . e x e</span>
+                               ^-- RTL rendering starts here
 
-<span class="out">Visual (extensions hidden):  </span><span class="hl">Annexe.jpeg</span>
-<span class="out">OS executes:                 </span><span class="hl">.exe</span></div>
-    </div>
+Visual (extensions hidden):  <span style="color:#c0392b">Annexe.jpeg</span>
+OS executes:                 <span style="color:#c0392b">.exe</span></pre>
 
     <h3>Code Point Anatomy</h3>
     <table>
