@@ -91,7 +91,7 @@ $RTLO = $BidiCharMap['rlo']  # placeholder - overwritten after arg parsing
 # ---------------------------------------------------------------------------
 $Associations = [ordered]@{
     '.exe' = @(
-        [ordered]@{ Name = 'Rapport_Q4_2024';    Extension = 'pdf'  }
+        [ordered]@{ Name = 'Rapport_trimestriel'; Extension = 'pdf'  }
         [ordered]@{ Name = 'Annexe_contrat';      Extension = 'pdf'  }
         [ordered]@{ Name = 'Devis_client';        Extension = 'pdf'  }
         [ordered]@{ Name = 'Photo_reunion';       Extension = 'jpeg' }
