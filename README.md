@@ -46,7 +46,7 @@
 
 Memento-RTLO is a PowerShell tool that demonstrates **file extension spoofing** using the Right-to-Left Override (RTLO) Unicode control character (`U+202E`).
 
-It renames or copies executable files (`.exe`, `.hta`, `.bat`, `.vbs`) so that their displayed extension appears benign (e.g., `.pdf`, `.jpeg`, `.txt`) while the underlying filesystem entry and operating-system behavior remain unchanged. The visual deception is produced entirely at the Unicode rendering layer, without modifying file content or metadata.
+It renames or copies executable files (`.exe`, `.hta`, `.bat`, `.vbs`, `.ps1`) so that their displayed extension appears benign (e.g., `.pdf`, `.jpeg`, `.txt`, `.docx`) while the underlying filesystem entry and operating-system behavior remain unchanged. The visual deception is produced entirely at the Unicode rendering layer, without modifying file content or metadata.
 
 The project serves three audiences:
 
@@ -151,10 +151,11 @@ Windows Explorer also assigns the icon associated with `.jpeg` files to this ent
 
 | Real Extension | Spoof Options |
 |---|---|
-| `.exe` | `Annexe.jpeg`, `Document.pdf` |
-| `.hta` | `Info.jpg`, `Fichier.txt` |
-| `.bat` | `Note.txt`, `Liste.csv` |
-| `.vbs` | `Script.txt`, `Email.eml` |
+| `.exe` | `Rapport_Q4_2024.pdf`, `Annexe_contrat.pdf`, `Devis_client.pdf`, `Photo_reunion.jpeg`, `Scan_document.jpg`, `Logo_societe.png`, `Note_interne.txt` |
+| `.hta` | `Info_reunion.jpg`, `Bilan_annuel.pdf`, `Fichier_partage.txt`, `Capture_ecran.png` |
+| `.bat` | `Liste_contacts.csv`, `Note_reunion.txt`, `Instructions_setup.txt`, `Export_donnees.csv` |
+| `.vbs` | `Script_backup.txt`, `Email_client.eml`, `Rapport_audit.pdf` |
+| `.ps1` | `Config_systeme.txt`, `Rapport_securite.pdf`, `Donnees_export.csv`, `Document_interne.docx` |
 
 ### Operating System Behavior
 
@@ -352,41 +353,63 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process; .\MementoRTLO.
 ### Command-Line Reference
 
 ```
-.\MementoRTLO.ps1 --file <path> [--choice <number>] [--replace] [--show-list] [--help]
+.\MementoRTLO.ps1 --file <path> [--choice <number>] [--replace] [--dry-run]
+.\MementoRTLO.ps1 --show-list [--file <path>]
 ```
 
 | Option | Required | Description | Example |
 |---|---|---|---|
-| `--file <path>` | Yes | Path to the source file to spoof | `--file "C:\lab\test.exe"` |
-| `--choice <n>` | No | Select spoof pattern by index (see `--show-list`) | `--choice 1` |
+| `--file <path>` | Yes* | Path to the source file to spoof (.exe/.hta/.bat/.vbs/.ps1) | `--file "C:\lab\test.exe"` |
+| `--choice <n>` | No | Select spoof pattern by **global** index (see `--show-list`) | `--choice 3` |
 | `--replace` | No | Rename the original file in-place (default: create a copy) | `--replace` |
-| `--show-list` | No | Print all available name/extension pairs and exit | `--show-list` |
+| `--dry-run` | No | Preview the output filename without writing any file | `--dry-run` |
+| `--show-list` | No | Print all available patterns with global indices; combine with `--file` to filter by extension | `--show-list` |
 | `--help` / `-help` / `/help` | No | Print help message and exit | `--help` |
+
+*`--file` is optional when using `--show-list` without a filter.
 
 ### Examples
 
-List available spoof patterns:
+List all available spoof patterns with their global indices:
 
 ```powershell
 .\MementoRTLO.ps1 --show-list
 ```
 
+List only the patterns for `.exe` files:
+
+```powershell
+.\MementoRTLO.ps1 --show-list --file "payload.exe"
+```
+
+Preview the output filename without creating any file (dry-run):
+
+```powershell
+.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1 --dry-run
+```
+
 Spoof `payload.exe` as a PDF document (non-destructive copy):
 
 ```powershell
-.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 2
+.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1
 ```
 
 Spoof `payload.exe` as a JPEG and rename the original in-place:
 
 ```powershell
-.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1 --replace
+.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 4 --replace
 ```
 
 Spoof a VBS file as an email message:
 
 ```powershell
-.\MementoRTLO.ps1 --file "C:\lab\dropper.vbs" --choice 2
+.\MementoRTLO.ps1 --file "C:\lab\dropper.vbs" --choice 20
+```
+
+Spoof a PS1 file as a CSV export:
+
+```powershell
+.\MementoRTLO.ps1 --file "C:\lab\implant.ps1" --choice 21
 ```
 
 <p align="right">(<a href="#top">Back to top</a>)</p>
