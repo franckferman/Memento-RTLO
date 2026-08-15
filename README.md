@@ -99,7 +99,7 @@ Step by step, `payload.exe` spoofed to appear as `Annexe.jpeg`:
 4. Insert `U+202E`: `Annexe[U+202E]gepj..exe`
 5. With extensions hidden, Explorer renders `gepj.` via RTLO as `.jpeg`, giving **`Annexe.jpeg`**
 
-> The leading dot of the spoof extension must be included before reversing so the separator dot appears on the correct side after RTLO rendering.
+> Without the leading dot: `reverse('jpeg')` = `gepj`, producing `Annexe[U+202E]gepj.exe` — rendered as `Annexejpeg` with no separator. With it: `reverse('.jpeg')` = `gepj.`, the dot lands at position 0 after RTLO and the result is `Annexe.jpeg`.
 
 ### Supported File Types
 
@@ -116,7 +116,7 @@ Use `--name` and `--fake-ext` for fully custom filenames not in the predefined l
 ### Operating System Behavior
 
 - **NTFS**: stores the exact logical byte sequence including `U+202E`. No sanitization at the filesystem layer.
-- **Windows Shell**: renders filenames through DirectWrite/GDI bidi stack, showing the reversed visual form.
+- **Windows Shell**: Explorer's ListView (comctl32 v6) delegates filename layout to DirectWrite (`IDWriteTextLayout`), which applies UAX #9. GDI has no bidi logic; this is a DirectWrite-only rendering path on Windows 10/11.
 - **Process execution**: the kernel resolves filenames by logical byte sequence. The loader reads the real extension and executes accordingly.
 - **Extensions visibility**: the technique relies on Windows hiding known file extensions (the default setting). When extensions are shown, the real extension appears reversed in the visual name.
 
