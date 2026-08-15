@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [stable, dev]
+    tags: ['v*']
+  pull_request:
+    branches: [stable, dev]
+
+jobs:
+  syntax:
+    name: Syntax Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse PowerShell AST
+        shell: pwsh
+        run: |
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            "${{ github.workspace }}/MementoRTLO.ps1",
+            [ref]$null,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host "Syntax OK — 0 parse errors"
+
+  analyze:
+    name: PSScriptAnalyzer
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Analyze MementoRTLO.ps1
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path MementoRTLO.ps1 -Severity Error,Warning
+          if ($results) {
+            $results | Format-Table -AutoSize
+            exit 1
+          }
+          Write-Host "PSScriptAnalyzer: no issues found"
+
+  smoke:
+    name: Smoke Test (--show-list)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run --show-list
+        shell: pwsh
+        run: |
+          $out = & .\MementoRTLO.ps1 --show-list 2>&1
+          Write-Host $out
+          if ($out -notmatch '\[\.exe\]') { Write-Error ".exe section missing"; exit 1 }
+          if ($out -notmatch '\[\.ps1\]') { Write-Error ".ps1 section missing"; exit 1 }
+
+      - name: Run --dry-run (exe)
+        shell: pwsh
+        run: |
+          $tmp = New-TemporaryFile
+          Rename-Item $tmp ($tmp.FullName + ".exe")
+          $exe = $tmp.FullName + ".exe"
+          $out = & .\MementoRTLO.ps1 --file $exe --choice 1 --dry-run 2>&1
+          Write-Host $out
+          if ($out -notmatch 'DRY RUN') { Write-Error "--dry-run did not trigger"; exit 1 }
+          Remove-Item $exe -ErrorAction SilentlyContinue

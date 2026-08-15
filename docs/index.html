@@ -239,8 +239,10 @@
     <p>
       <strong>Memento-RTLO</strong> is a PowerShell tool that demonstrates file extension spoofing
       using the Right-to-Left Override Unicode control character (<code>U+202E</code>). It renames
-      or copies executable files so that their displayed extension appears benign while the
-      underlying filesystem entry and operating-system behavior remain unchanged.
+      or copies files (<code>.exe</code>, <code>.hta</code>, <code>.bat</code>, <code>.vbs</code>,
+      <code>.ps1</code>) so that their displayed extension appears benign (e.g. <code>.pdf</code>,
+      <code>.jpeg</code>, <code>.csv</code>, <code>.docx</code>) while the underlying filesystem
+      entry and operating-system behavior remain unchanged.
     </p>
     <p>
       The project targets red teamers building phishing payloads for authorized engagements,
@@ -304,33 +306,50 @@
       </div>
       <div class="terminal-body"><span class="prompt">PS C:\lab&gt;</span> <span class="cmd">Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process</span>
 
-<span class="prompt">PS C:\lab&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1</span>
-<span class="out">===============================================</span>
-<span class="out">    Memento - RTLO File Extension Spoofing Tool</span>
-<span class="out">===============================================</span>
-<span class="out">File copied as:</span> <span class="hl">Annexe&#x202E;gepj.exe</span>
+<span class="out"># Preview output without writing any file</span>
+<span class="prompt">PS C:\lab&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file payload.exe --choice 1 --dry-run</span>
+<span class="out">====================================================</span>
+<span class="out">  Memento-RTLO  -  File Extension Spoofing Tool</span>
+<span class="out">  MITRE ATT&CK T1036.002  |  Author: Franck FERMAN</span>
+<span class="out">====================================================</span>
+<span class="out">  Source  :</span> <span class="cmd">payload.exe</span>
+<span class="out">  Pattern :</span> <span class="cmd">[1] Rapport_Q4_2024.pdf  (for .exe)</span>
+<span class="out">  Output  :</span> <span class="hl">Rapport_Q4_2024&#x202E;fdp.exe</span>
+
+<span class="out">[DRY RUN] No file written.</span>
+
+<span class="out"># Create the spoofed copy</span>
+<span class="prompt">PS C:\lab&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file payload.exe --choice 1</span>
+<span class="out">  Source  :</span> <span class="cmd">payload.exe</span>
+<span class="out">  Pattern :</span> <span class="cmd">[1] Rapport_Q4_2024.pdf  (for .exe)</span>
+<span class="out">  Output  :</span> <span class="hl">Rapport_Q4_2024&#x202E;fdp.exe</span>
+<span class="out">[OK] Spoofed copy created.</span>
 
 <span class="prompt">PS C:\lab&gt;</span> <span class="cmd">dir</span>
-<span class="out">Mode         LastWriteTime     Length Name</span>
-<span class="out">----         -------------     ------ ----</span>
-<span class="out">-a---  2026-03-27  10:00      73802  payload.exe</span>
-<span class="out">-a---  2026-03-27  10:00      73802</span>  <span class="hl">Annexe exe.jpeg</span>  <span class="out">&lt;-- visually spoofed</span>
+<span class="out">-a---  payload.exe</span>
+<span class="out">-a---</span>  <span class="hl">Rapport_Q4_2024 exe.pdf</span>  <span class="out">&lt;-- visually spoofed in Explorer</span>
 
+<span class="out"># List all 22 patterns (global index used with --choice)</span>
 <span class="prompt">PS C:\lab&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --show-list</span>
-<span class="out">Available name/extension pairs by file type:</span>
+<span class="out">  [.exe]</span>
+<span class="out">  [ 1]  Rapport_Q4_2024.pdf</span>
+<span class="out">  [ 2]  Annexe_contrat.pdf</span>
+<span class="out">  [ 3]  Devis_client.pdf</span>
+<span class="out">  [ 4]  Photo_reunion.jpeg</span>
+<span class="out">  ...</span>
+<span class="out">  [.ps1]</span>
+<span class="out">  [19]  Config_systeme.txt</span>
+<span class="out">  [20]  Rapport_securite.pdf</span>
+<span class="out">  [21]  Donnees_export.csv</span>
+<span class="out">  [22]  Document_interne.docx</span>
 
-<span class="out">[.exe]</span>
-<span class="out">  [1] Annexe.jpeg</span>
-<span class="out">  [2] Document.pdf</span>
-<span class="out">[.hta]</span>
-<span class="out">  [3] Info.jpg</span>
-<span class="out">  [4] Fichier.txt</span>
-<span class="out">[.bat]</span>
-<span class="out">  [5] Note.txt</span>
-<span class="out">  [6] Liste.csv</span>
-<span class="out">[.vbs]</span>
-<span class="out">  [7] Script.txt</span>
-<span class="out">  [8] Email.eml</span></div>
+<span class="out"># Filter --show-list by extension</span>
+<span class="prompt">PS C:\lab&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --show-list --file implant.ps1</span>
+<span class="out">  [.ps1]</span>
+<span class="out">  [19]  Config_systeme.txt</span>
+<span class="out">  [20]  Rapport_securite.pdf</span>
+<span class="out">  [21]  Donnees_export.csv</span>
+<span class="out">  [22]  Document_interne.docx</span></div>
     </div>
   </section>
 
@@ -444,28 +463,49 @@
       <div class="terminal-body"><span class="out"># Allow script execution for the current process</span>
 <span class="prompt">PS&gt;</span> <span class="cmd">Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process</span>
 
-<span class="out"># Spoof payload.exe as a JPEG (non-destructive copy)</span>
-<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 1</span>
-
-<span class="out"># Spoof payload.exe as a PDF and replace the original</span>
-<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file "C:\lab\payload.exe" --choice 2 --replace</span>
-
-<span class="out"># List all spoof patterns</span>
+<span class="out"># List all 22 patterns</span>
 <span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --show-list</span>
+
+<span class="out"># Filter patterns by extension</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --show-list --file payload.ps1</span>
+
+<span class="out"># Preview without writing (dry-run)</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file payload.exe --choice 1 --dry-run</span>
+
+<span class="out"># Spoof .exe as PDF (non-destructive copy)</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file payload.exe --choice 1</span>
+
+<span class="out"># Spoof .exe as JPEG and rename in-place</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file payload.exe --choice 4 --replace</span>
+
+<span class="out"># Spoof .ps1 as CSV export</span>
+<span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --file implant.ps1 --choice 21</span>
 
 <span class="out"># Display help</span>
 <span class="prompt">PS&gt;</span> <span class="cmd">.\MementoRTLO.ps1 --help</span></div>
     </div>
 
+    <h3>Supported Extensions &amp; Patterns</h3>
+    <table>
+      <tr><th>Real Ext</th><th>#</th><th>Spoofed As</th></tr>
+      <tr><td><code>.exe</code></td><td>1–7</td><td>pdf (×3), jpeg, jpg, png, txt</td></tr>
+      <tr><td><code>.hta</code></td><td>8–11</td><td>jpg, pdf, txt, png</td></tr>
+      <tr><td><code>.bat</code></td><td>12–15</td><td>csv (×2), txt (×2)</td></tr>
+      <tr><td><code>.vbs</code></td><td>16–18</td><td>txt, eml, pdf</td></tr>
+      <tr><td><code>.ps1</code></td><td>19–22</td><td>txt, pdf, csv, docx</td></tr>
+    </table>
+
     <h3>Command-Line Reference</h3>
     <table>
       <tr><th>Option</th><th>Required</th><th>Description</th></tr>
-      <tr><td><code>--file &lt;path&gt;</code></td><td>Yes</td><td>Path to the source file to spoof</td></tr>
-      <tr><td><code>--choice &lt;n&gt;</code></td><td>No</td><td>Select spoof pattern by index</td></tr>
+      <tr><td><code>--file &lt;path&gt;</code></td><td>Yes*</td><td>Source file (.exe/.hta/.bat/.vbs/.ps1)</td></tr>
+      <tr><td><code>--choice &lt;n&gt;</code></td><td>No</td><td>Global pattern index from <code>--show-list</code></td></tr>
       <tr><td><code>--replace</code></td><td>No</td><td>Rename original in-place (default: copy)</td></tr>
-      <tr><td><code>--show-list</code></td><td>No</td><td>Print available patterns and exit</td></tr>
+      <tr><td><code>--dry-run</code></td><td>No</td><td>Preview output filename, no file written</td></tr>
+      <tr><td><code>--show-list</code></td><td>No</td><td>List all patterns; combine with <code>--file</code> to filter by extension</td></tr>
       <tr><td><code>--help</code></td><td>No</td><td>Print usage and exit</td></tr>
     </table>
+    <p style="font-size:.8rem;color:#555">* <code>--file</code> optional when using <code>--show-list</code> without filter.</p>
   </section>
 
   <!-- ── License ────────────────────────────────────────────────────── -->
