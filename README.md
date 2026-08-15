@@ -23,22 +23,8 @@ It renames or copies executable files (`.exe`, `.hta`, `.bat`, `.vbs`, `.ps1`) s
 ## Demo
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/docs/github/screenshots/explorer_spoofed.png" alt="RTLO spoofed file in Windows Explorer" width="640">
-  <br><em>Windows Explorer displays an .exe as .pdf (extensions hidden, default Windows setting)</em>
-</div>
-
-<br>
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/docs/github/screenshots/show_list.png" alt="--show-list output" width="640">
-  <br><em>Pattern browser: <code>.\MementoRTLO.ps1 --show-list</code></em>
-</div>
-
-<br>
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/docs/github/screenshots/custom_name.png" alt="--name custom output" width="640">
-  <br><em>Custom filename: <code>.\MementoRTLO.ps1 --file cv_franck.hta --name cv_franck --fake-ext pdf</code></em>
+  <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/docs/github/screenshots/explorer_spoofed.png" alt="RTLO spoofed files in Windows Explorer" width="700">
+  <br><em>Windows Explorer — .exe / .hta / .bat / .vbs / .ps1 files spoofed as .pdf, .csv, .jpeg, .txt, .png (extensions hidden, default Windows setting)</em>
 </div>
 
 ---
