@@ -20,20 +20,6 @@ It renames or copies executable files (`.exe`, `.hta`, `.bat`, `.vbs`, `.ps1`) s
 
 ---
 
-## Installation
-
-**Requirements:** Windows 10/11, PowerShell 5.1+ (pre-installed on modern Windows). No external dependencies.
-
-```powershell
-# One-liner
-Invoke-WebRequest https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/MementoRTLO.ps1 -OutFile MementoRTLO.ps1
-
-# Or clone
-git clone https://github.com/franckferman/Memento-RTLO.git
-```
-
----
-
 ## Demo
 
 <div align="center">
@@ -45,15 +31,27 @@ git clone https://github.com/franckferman/Memento-RTLO.git
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/docs/github/screenshots/show_list.png" alt="--show-list output" width="640">
-  <br><em>Pattern browser — <code>.\MementoRTLO.ps1 --show-list</code></em>
+  <br><em>Pattern browser: <code>.\MementoRTLO.ps1 --show-list</code></em>
 </div>
 
 <br>
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/docs/github/screenshots/custom_name.png" alt="--name custom output" width="640">
-  <br><em>Custom filename — <code>.\MementoRTLO.ps1 --file cv_franck.hta --name cv_franck --fake-ext pdf</code></em>
+  <br><em>Custom filename: <code>.\MementoRTLO.ps1 --file cv_franck.hta --name cv_franck --fake-ext pdf</code></em>
 </div>
+
+---
+
+## Installation
+
+```powershell
+# One-liner
+Invoke-WebRequest https://raw.githubusercontent.com/franckferman/Memento-RTLO/stable/MementoRTLO.ps1 -OutFile MementoRTLO.ps1
+
+# Or clone
+git clone https://github.com/franckferman/Memento-RTLO.git
+```
 
 ---
 
@@ -77,7 +75,7 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 |---|---|
 | `--file <path>` | Source file to spoof (`.exe` / `.hta` / `.bat` / `.vbs` / `.ps1`) |
 | `--choice <N>` | Select a predefined pattern by global index (see `--show-list`) |
-| `--name <basename>` | Custom output base name — bypasses predefined patterns |
+| `--name <basename>` | Custom output base name, bypasses predefined patterns |
 | `--fake-ext <ext>` | Fake extension to display, e.g. `pdf`, `jpg` (requires `--name`) |
 | `--replace` | Rename in-place instead of creating a copy |
 | `--dry-run` | Preview the output filename without writing any file |
@@ -114,25 +112,25 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 
 ## Unicode Bidi Deep Dive
 
-The Unicode Standard defines the **Bidirectional Algorithm** (UAX #9) to handle mixed-direction text — documents that combine left-to-right (LTR) scripts such as Latin with right-to-left (RTL) scripts such as Arabic or Hebrew. The algorithm assigns a bidi category to every code point and determines the visual rendering order.
+The Unicode Standard defines the **Bidirectional Algorithm** (UAX #9) to handle mixed-direction text. Documents combining left-to-right (LTR) scripts such as Latin with right-to-left (RTL) scripts such as Arabic or Hebrew require the algorithm to assign a bidi category to every code point and determine the visual rendering order.
 
 Key categories relevant to this technique:
 
 | Category | Name | Description |
 |---|---|---|
 | L | Left-to-Right | Standard Latin characters |
-| RLO | Right-to-Left Override | **U+202E** — forces all following characters RTL |
-| RLE | Right-to-Left Embedding | U+202B — opens an RTL embedding level |
-| LRO | Left-to-Right Override | U+202D — forces all following characters LTR |
-| PDF | Pop Directional Formatting | U+202C — terminates the innermost embedding |
+| RLO | Right-to-Left Override | **U+202E**: forces all following characters RTL |
+| RLE | Right-to-Left Embedding | U+202B: opens an RTL embedding level |
+| LRO | Left-to-Right Override | U+202D: forces all following characters LTR |
+| PDF | Pop Directional Formatting | U+202C: terminates the innermost embedding |
 
-### U+202E — Right-to-Left Override
+### U+202E: Right-to-Left Override
 
-`U+202E` is a **format character** — zero-width, no visible glyph. It forces every character following it to be rendered right-to-left regardless of intrinsic directionality. Because it is non-printing, it is **invisible in most GUI contexts** — Windows Explorer, Outlook attachment panes, messaging apps, and web browsers render the reversed characters without exposing the control character.
+`U+202E` is a **format character**, zero-width with no visible glyph. It forces every character following it to be rendered right-to-left regardless of intrinsic directionality. Because it is non-printing, it is **invisible in most GUI contexts**: Windows Explorer, Outlook attachment panes, messaging apps, and web browsers render the reversed characters without exposing the control character.
 
 ```
 U+202E
-  Block    : General Punctuation (U+2000–U+206F)
+  Block    : General Punctuation (U+2000-U+206F)
   Category : Cf (Format character)
   Bidi     : RLO (Right-to-Left Override)
   UTF-8    : E2 80 AE  (3 bytes)
@@ -162,13 +160,13 @@ The file is an `.exe`; the kernel reads the real extension and executes it accor
 <DisplayName> + U+202E + reverse(.<SpoofExtension>) + <RealExtension>
 ```
 
-Step by step — `payload.exe` spoofed to appear as `Annexe.jpeg`:
+Step by step, `payload.exe` spoofed to appear as `Annexe.jpeg`:
 
 1. Display name: `Annexe`
-2. Spoof extension with leading dot: `.jpeg` → reversed: `gepj.`
+2. Spoof extension with leading dot: `.jpeg`, reversed: `gepj.`
 3. Append real extension: `gepj..exe`
 4. Insert `U+202E`: `Annexe[U+202E]gepj..exe`
-5. With extensions hidden, Explorer renders `gepj.` via RTLO as `.jpeg` → **`Annexe.jpeg`**
+5. With extensions hidden, Explorer renders `gepj.` via RTLO as `.jpeg`, giving **`Annexe.jpeg`**
 
 > The leading dot of the spoof extension must be included before reversing so the separator dot appears on the correct side after RTLO rendering.
 
