@@ -50,7 +50,7 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 |---|---|
 | `--file <path>` | Source file to spoof (`.exe` / `.hta` / `.bat` / `.vbs` / `.ps1`) |
 | `--choice <N>` | Select a predefined pattern by global index (see `--show-list`) |
-| `--name <basename>` | Custom output base name, bypasses predefined patterns |
+| `--name <basename>` | Custom basename (bypasses predefined patterns) |
 | `--fake-ext <ext>` | Fake extension to display, e.g. `pdf`, `jpg` (requires `--name`) |
 | `--replace` | Rename in-place instead of creating a copy |
 | `--dry-run` | Preview the output filename without writing any file |
@@ -79,8 +79,6 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 # Custom name: appear as cv_franck.pdf (actually .hta)
 .\MementoRTLO.ps1 --file cv_franck.hta --name cv_franck --fake-ext pdf
 
-# Custom name with dry-run preview
-.\MementoRTLO.ps1 --file rapport.exe --name Rapport_annuel --fake-ext pdf --dry-run
 ```
 
 ---
