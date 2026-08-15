@@ -83,6 +83,45 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 
 ---
 
+## RTLO Attack Mechanics
+
+### Filename Construction
+
+```
+<DisplayName> + U+202E + reverse(.<SpoofExtension>) + <RealExtension>
+```
+
+Step by step, `payload.exe` spoofed to appear as `Annexe.jpeg`:
+
+1. Display name: `Annexe`
+2. Spoof extension with leading dot: `.jpeg`, reversed: `gepj.`
+3. Append real extension: `gepj..exe`
+4. Insert `U+202E`: `Annexe[U+202E]gepj..exe`
+5. With extensions hidden, Explorer renders `gepj.` via RTLO as `.jpeg`, giving **`Annexe.jpeg`**
+
+> The leading dot of the spoof extension must be included before reversing so the separator dot appears on the correct side after RTLO rendering.
+
+### Supported File Types
+
+| Real Extension | Predefined Patterns |
+|---|---|
+| `.exe` | `Rapport_trimestriel.pdf`, `Annexe_contrat.pdf`, `Devis_client.pdf`, `Photo_reunion.jpeg`, `Scan_document.jpg`, `Logo_societe.png`, `Note_interne.txt` |
+| `.hta` | `Info_reunion.jpg`, `Bilan_annuel.pdf`, `Fichier_partage.txt`, `Capture_ecran.png` |
+| `.bat` | `Liste_contacts.csv`, `Note_reunion.txt`, `Instructions_setup.txt`, `Export_donnees.csv` |
+| `.vbs` | `Script_backup.txt`, `Email_client.eml`, `Rapport_audit.pdf` |
+| `.ps1` | `Config_systeme.txt`, `Rapport_securite.pdf`, `Donnees_export.csv`, `Document_interne.docx` |
+
+Use `--name` and `--fake-ext` for fully custom filenames not in the predefined list.
+
+### Operating System Behavior
+
+- **NTFS**: stores the exact logical byte sequence including `U+202E`. No sanitization at the filesystem layer.
+- **Windows Shell**: renders filenames through DirectWrite/GDI bidi stack, showing the reversed visual form.
+- **Process execution**: the kernel resolves filenames by logical byte sequence. The loader reads the real extension and executes accordingly.
+- **Extensions visibility**: the technique relies on Windows hiding known file extensions (the default setting). When extensions are shown, the real extension appears reversed in the visual name.
+
+---
+
 ## Unicode Bidirectional Deep Dive
 
 The Unicode Standard defines the **Bidirectional Algorithm** (UAX #9) to handle mixed-direction text. Documents combining left-to-right (LTR) scripts such as Latin with right-to-left (RTL) scripts such as Arabic or Hebrew require the algorithm to assign a bidi category to every code point and determine the visual rendering order.
@@ -122,45 +161,6 @@ Visual (extensions hidden):  Annexe.jpeg
 ```
 
 The file is an `.exe`; the kernel reads the real extension and executes it accordingly.
-
----
-
-## RTLO Attack Mechanics
-
-### Filename Construction
-
-```
-<DisplayName> + U+202E + reverse(.<SpoofExtension>) + <RealExtension>
-```
-
-Step by step, `payload.exe` spoofed to appear as `Annexe.jpeg`:
-
-1. Display name: `Annexe`
-2. Spoof extension with leading dot: `.jpeg`, reversed: `gepj.`
-3. Append real extension: `gepj..exe`
-4. Insert `U+202E`: `Annexe[U+202E]gepj..exe`
-5. With extensions hidden, Explorer renders `gepj.` via RTLO as `.jpeg`, giving **`Annexe.jpeg`**
-
-> The leading dot of the spoof extension must be included before reversing so the separator dot appears on the correct side after RTLO rendering.
-
-### Supported File Types
-
-| Real Extension | Predefined Patterns |
-|---|---|
-| `.exe` | `Rapport_trimestriel.pdf`, `Annexe_contrat.pdf`, `Devis_client.pdf`, `Photo_reunion.jpeg`, `Scan_document.jpg`, `Logo_societe.png`, `Note_interne.txt` |
-| `.hta` | `Info_reunion.jpg`, `Bilan_annuel.pdf`, `Fichier_partage.txt`, `Capture_ecran.png` |
-| `.bat` | `Liste_contacts.csv`, `Note_reunion.txt`, `Instructions_setup.txt`, `Export_donnees.csv` |
-| `.vbs` | `Script_backup.txt`, `Email_client.eml`, `Rapport_audit.pdf` |
-| `.ps1` | `Config_systeme.txt`, `Rapport_securite.pdf`, `Donnees_export.csv`, `Document_interne.docx` |
-
-Use `--name` and `--fake-ext` for fully custom filenames not in the predefined list.
-
-### Operating System Behavior
-
-- **NTFS**: stores the exact logical byte sequence including `U+202E`. No sanitization at the filesystem layer.
-- **Windows Shell**: renders filenames through DirectWrite/GDI bidi stack, showing the reversed visual form.
-- **Process execution**: the kernel resolves filenames by logical byte sequence. The loader reads the real extension and executes accordingly.
-- **Extensions visibility**: the technique relies on Windows hiding known file extensions (the default setting). When extensions are shown, the real extension appears reversed in the visual name.
 
 ---
 
