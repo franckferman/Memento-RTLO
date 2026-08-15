@@ -260,8 +260,8 @@ $Params = [ordered]@{
     DryRun   = $false
     ShowList = $false
     BidiChar = 'rlo'      # rlo (default) | rli | rle
-    Name     = $null      # custom basename — bypasses predefined patterns
-    FakeExt  = $null      # custom fake extension (no dot) — required with --name
+    Name     = $null      # custom basename - bypasses predefined patterns
+    FakeExt  = $null      # custom fake extension (no dot) - required with --name
 }
 
 $i = 0
